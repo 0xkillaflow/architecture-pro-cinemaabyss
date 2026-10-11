@@ -1,5 +1,18 @@
 # Сдача спринта 2
 
+По какой-то причине пакеты не отображаются в GitHub, если смотреть со стороннего аккаунта, но с моего аккаунта их видно.
+
+Включение отображение Deploymets (Edit repository details -> Deployments) просто не сохраняется, так и не смог победить это.
+
+Тем не менее пакеты доступны по ссылкам:
+
+* [architecture-pro-cinemaabyss/Fmonolith](https://github.com/0xkillaflow/architecture-pro-cinemaabyss/pkgs/container/architecture-pro-cinemaabyss%2Fmonolith)
+* [architecture-pro-cinemaabyss/movies-service](https://github.com/0xkillaflow/architecture-pro-cinemaabyss/pkgs/container/architecture-pro-cinemaabyss%2Fmovies-service)
+* [architecture-pro-cinemaabyss/events-service](https://github.com/0xkillaflow/architecture-pro-cinemaabyss/pkgs/container/architecture-pro-cinemaabyss%2Fevents-service)
+* [architecture-pro-cinemaabyss/proxy-service](https://github.com/0xkillaflow/architecture-pro-cinemaabyss/pkgs/container/architecture-pro-cinemaabyss%2Fproxy-service)
+
+![alt text](screenshots/packages.png)
+
 ## Задание 1. To-Be архитектура
 
 Спроектировал целевую архитектуру «Кинобездны»: разделил систему на домены, сделал единую точку входа для клиентов и асинхронное взаимодействие сервисов через Kafka. Диаграмма контейнеров в C4: [containers-to-be.puml](schemas/c4/containers-to-be.puml) ([png](schemas/c4/containers-to-be.png)).
