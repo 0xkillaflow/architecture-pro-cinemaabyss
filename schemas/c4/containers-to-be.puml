@@ -1,0 +1,69 @@
+@startuml containers-to-be
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C4 Container - Кинобездна (To-Be)
+
+LAYOUT_TOP_DOWN()
+
+Person(user, "Пользователь", "Смотрит фильмы с ноутбука, смартфона или смарт ТВ")
+
+System_Ext(payment_ext, "Платёжные системы", "Приём оплаты")
+System_Ext(cinemas_ext, "Онлайн-кинотеатры", "Внешний контент")
+System_Ext(loyalty_ext, "Сервисы лояльности и маркетплейсы", "Скидки и бонусы")
+System_Ext(reco_ext, "Рекомендательная система", "Внешняя, принимает данные через RabbitMQ")
+System_Ext(s3, "S3", "Хранилище видео")
+
+System_Boundary(k8s, "Кинобездна (Kubernetes, Istio)") {
+    Container(gateway, "API Gateway", "Go, proxy-service", "Единая точка входа за Ingress. Маршрутизирует запросы, по фиче-флагу постепенно переводит трафик с монолита на сервисы (Strangler Fig)")
+
+    Container(users, "Users Service", "Go", "Регистрация, аутентификация, профиль, избранное")
+    Container(movies, "Movies Service", "Go", "Метаданные фильмов: жанры, актёры, оценки")
+    Container(content, "Content Service", "Go", "Видео и контент из внешних кинотеатров")
+    Container(subscriptions, "Subscriptions Service", "Go", "Подписки и скидки")
+    Container(payments, "Payments Service", "Go", "Платежи")
+    Container(events, "Events Service", "Go", "MVP на Kafka: принимает события и сам их обрабатывает")
+    Container(reco_adapter, "Recommendations Adapter", "Go", "Передаёт события во внешнюю рекомендательную систему и отдаёт подборки")
+    Container(monolith, "Монолит", "Go", "Функции, которые ещё не вынесены. Выключается после миграции")
+
+    ContainerDb(users_db, "Users DB", "PostgreSQL")
+    ContainerDb(movies_db, "Movies DB", "PostgreSQL")
+    ContainerDb(content_db, "Content DB", "PostgreSQL")
+    ContainerDb(subscriptions_db, "Subscriptions DB", "PostgreSQL")
+    ContainerDb(payments_db, "Payments DB", "PostgreSQL")
+    ContainerDb(monolith_db, "Monolith DB", "PostgreSQL")
+
+    ContainerQueue(kafka, "Kafka", "Apache Kafka", "Шина событий: user-events, movie-events, payment-events")
+}
+
+Rel(user, gateway, "Запросы клиентов", "REST/HTTPS")
+
+Rel(gateway, users, "/api/users", "REST")
+Rel(gateway, movies, "/api/movies", "REST")
+Rel(gateway, content, "/api/content", "REST")
+Rel(gateway, subscriptions, "/api/subscriptions", "REST")
+Rel(gateway, payments, "/api/payments", "REST")
+Rel(gateway, reco_adapter, "/api/recommendations", "REST")
+Rel(gateway, events, "/api/events", "REST")
+Rel(gateway, monolith, "Всё, что ещё не вынесено", "REST")
+
+Rel(users, users_db, "SQL")
+Rel(movies, movies_db, "SQL")
+Rel(content, content_db, "SQL")
+Rel(subscriptions, subscriptions_db, "SQL")
+Rel(payments, payments_db, "SQL")
+Rel(monolith, monolith_db, "SQL")
+
+Rel(users, kafka, "user-events")
+Rel(movies, kafka, "movie-events")
+Rel(payments, kafka, "payment-events")
+Rel(kafka, subscriptions, "payment-events: продлить подписку")
+Rel(events, kafka, "Пишет и читает события")
+Rel(kafka, reco_adapter, "user-events, movie-events")
+
+Rel(payments, payment_ext, "Оплата", "REST")
+Rel(content, cinemas_ext, "Получение контента", "REST")
+Rel(content, s3, "Видео", "S3 API")
+Rel(subscriptions, loyalty_ext, "Скидки и бонусы", "REST")
+Rel(reco_adapter, reco_ext, "События и подборки", "RabbitMQ")
+
+@enduml

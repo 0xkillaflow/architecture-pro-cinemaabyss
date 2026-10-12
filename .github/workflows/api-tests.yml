@@ -2,9 +2,9 @@ name: API Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, cinema ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, cinema ]
   workflow_dispatch:
     inputs:
       environment:
@@ -27,7 +27,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Set up Docker Compose
         run: |
@@ -35,15 +35,28 @@ jobs:
       
       - name: Start services with Docker Compose
         run: |
-          docker compose up -d
-          # Wait for services to be ready
-          echo "Waiting for services to be ready..."
-          sleep 120
-      
+          # --wait ждёт healthy для postgres и running для остальных,
+          # и падает, если контейнер умер на старте
+          docker compose up -d --wait --wait-timeout 180
+
+      - name: Wait for HTTP endpoints
+        run: |
+          for url in http://localhost:8080/health \
+                     http://localhost:8081/api/movies/health \
+                     http://localhost:8082/api/events/health \
+                     http://localhost:8000/health; do
+            echo "waiting for $url"
+            for i in $(seq 1 30); do
+              curl -fsS "$url" > /dev/null && { echo "  ok"; break; }
+              [ "$i" = 30 ] && { echo "  TIMEOUT"; exit 1; }
+              sleep 2
+            done
+          done
+
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: '18'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: tests/postman/package-lock.json
       
@@ -54,18 +67,10 @@ jobs:
       - name: Run API tests
         working-directory: tests/postman
         run: |
-
-          docker compose up -d
-          # Wait for services to be ready
-          echo "Waiting for services to be ready..."
-          sleep 15
-          # Build the Docker image
           docker build -t cinemaabyss-api-tests .
-          
-          # Run the tests in Docker
-          docker run --network=cinemaabyss-network -v "$(pwd)/reports:/app/reports" cinemaabyss-api-tests
-        
-      
+          docker run --rm --network=cinemaabyss-network \
+            -v "$(pwd)/reports:/app/reports" cinemaabyss-api-tests
+
       - name: Stop services
         if: always()
         run: docker compose down

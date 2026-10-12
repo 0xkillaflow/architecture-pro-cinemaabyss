@@ -77,7 +77,8 @@ const newmanOptions = {
   reporter: {
     htmlextra: {
       export: path.join(reportsDir, `report-${argv.environment}-${new Date().toISOString().replace(/:/g, '-')}.html`),
-      template: 'default',
+      // template не задаём: htmlextra трактует эту опцию как путь к файлу
+      // кастомного шаблона, а встроенный берётся только когда она пустая
       showOnlyFails: false,
       noSyntaxHighlighting: false,
       testPaging: true,
